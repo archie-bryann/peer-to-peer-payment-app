@@ -83,14 +83,14 @@ describe('Wafi Api', () => {
             })
     })
 
-    it('POST /send -- validates request body', () => {
+    it('POST /balance/:username -- validates request body', () => {
         return request(app).get('/balance/ddddd').expect(404);
     })
 
 
-    it('PATCH /send -- send money', () => {
+    it('PATCH /transfer -- transfers money', () => {
         return request(app)
-            .post('/send/')
+            .post('/transfer/')
             .send({
                 username: 'precious',
                 amount: 2,
@@ -109,8 +109,8 @@ describe('Wafi Api', () => {
             })
     })
 
-    it('POST /send -- validates request body', () => {
-        return request(app).post('/send').send({
+    it('POST /transfer -- validates request body', () => {
+        return request(app).post('/transfer').send({
             username: 'precious',
             amount: 1000,
             bankcode: '032',
