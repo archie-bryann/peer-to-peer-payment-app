@@ -40,7 +40,7 @@ describe('Wafi Api', () => {
                 )
             })
     })
-    it('PATCH /send -- send money', () => {
+    it('POST /send -- send money', () => {
         return request(app)
             .post('/send/')
             .send({
