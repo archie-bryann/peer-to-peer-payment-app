@@ -95,12 +95,13 @@ describe('Wafi Api', () => {
     })
 
     it('SELL /sell -- validates request body', () => {
-        return request(app).post('/send').send({
+        return request(app).post('/sell').send({
             username: 'precious',
-            amount: 52222222222222222222222,
+            amount: 43333333333333333,
             from: 'naira',
             to: 'dollar',
-        }).expect(422);
+        }).expect(422)
+      
     })
 
 
