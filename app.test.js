@@ -14,7 +14,10 @@ describe('Wafi Api', () => {
                 expect(response.body).toEqual(
                     expect.objectContaining({
                         username: 'precious',
-                        account_balance: 0
+                        naira_balance:0,
+                        dollar_balance:0, 
+                        yen_balance:0,
+                        yuan_balance:0
                     })
                 )
             })
@@ -28,7 +31,8 @@ describe('Wafi Api', () => {
         return request(app)
             .patch('/deposit/precious')
             .send({
-                amount: 10
+                amount: 10,
+                currency: 'naira'
             })
             .expect('Content-Type', /json/)
             .expect(200)
@@ -46,7 +50,8 @@ describe('Wafi Api', () => {
             .send({
                 username: 'precious',
                 amount: 5,
-                to: 'default'
+                to: 'default',
+                currency: 'naira'
             })
             .expect('Content-Type', /json/)
             .expect(200)
@@ -64,7 +69,37 @@ describe('Wafi Api', () => {
         return request(app).post('/send').send({
             username: 'precious',
             amount: 100,
-            to: 'default'
+            to: 'default',
+            currency: 'naira'
+        }).expect(422);
+    })
+
+    it('SELL /sell -- sell for another currency', () => {
+        return request(app)
+            .post('/sell')
+            .send({
+                username: 'precious',
+                amount: 5,
+                from: 'naira',
+                to: 'dollar',
+            })
+            .expect('Content-Type', /json/)
+            .expect(200)
+            .then((response)=>{
+                expect(response.body).toEqual(
+                    expect.objectContaining({
+                        username: 'precious',
+                    })
+                )
+            })
+    })
+
+    it('SELL /sell -- validates request body', () => {
+        return request(app).post('/send').send({
+            username: 'precious',
+            amount: 52222222222222222222222,
+            from: 'naira',
+            to: 'dollar',
         }).expect(422);
     })
 
@@ -95,7 +130,8 @@ describe('Wafi Api', () => {
                 username: 'precious',
                 amount: 2,
                 bankcode: '032',
-                to: 'default'
+                to: 'default',
+                to: 'naira'
             })
             .expect('Content-Type', /json/)
             .expect(200)
@@ -114,7 +150,8 @@ describe('Wafi Api', () => {
             username: 'precious',
             amount: 1000,
             bankcode: '032',
-            to: 'default'
+            to: 'default',
+            currency: 'naira'
         }).expect(422);
     })
 })

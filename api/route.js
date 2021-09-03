@@ -4,9 +4,29 @@ const createError = require('http-errors');
 const moment = require('moment');
 
 // data
-const users = [{id:1,username:'default',account_balance:0}];
+const users = [
+    {id:1,username:'default',naira_balance:0,dollar_balance:500, yen_balance:0,yuan_balance:0}
+    // {id:1,username:'precious',naira_balance:0,dollar_balance:100, yen_balance:0,yuan_balance:0}
+];
 const transactions = [];
 
+const rates = [
+    {"dollar": 1},
+    {"naira": 411.57},
+    {"yen": 109.47},
+    {"yuan": 6.46}
+];
+
+function getCurrencyAmount(currency) {
+    let rate_amount;
+    for(var j in rates) {
+        if(currency == Object.keys(rates[j])[0]) {
+            rate_amount = rates[j][currency];
+        }
+    }
+    return rate_amount;
+}
+ 
 router.post('/add-user', (req,res,next) => {
 
     const {username} = req.body;
@@ -19,7 +39,10 @@ router.post('/add-user', (req,res,next) => {
     const newUser = {
         id: users.length + 1,
         username,
-        account_balance:0
+        naira_balance:0,
+        dollar_balance:0, 
+        yen_balance:0,
+        yuan_balance:0
     }
 
     users.push(newUser);
@@ -30,21 +53,20 @@ router.post('/add-user', (req,res,next) => {
 router.patch('/deposit/:username', (req,res,next)=>{
     // return res.status(200).json(users);
     const { username } = req.params;
-    const { amount } = req.body;
+    const { amount, currency } = req.body;
 
     var user = users.find(x => x.username == username);
 
     var index = users.findIndex(x => x.username == username);
 
-    user.account_balance += amount;
+    user[`${currency}_balance`] += amount;
     users[index] = user;
-
 
     return res.status(200).json(user);
 })
 
 router.post('/send', (req,res,next)=>{
-    const {username,amount,to} = req.body;
+    const {username,amount,to, currency} = req.body; // naira, dollar, yen, yuan
 
     const sender = users.find((user)=>user.username == username);
     const sender_index = users.findIndex((user)=>user.username == username);
@@ -52,12 +74,12 @@ router.post('/send', (req,res,next)=>{
     const recipient_index = users.findIndex((user)=>user.username == to);
 
     // check if sender has sufficient account balance
-    if(sender.account_balance < amount) {
-        return next(createError(422, 'Insufficient account balance'));
+    if(sender[`${currency}_balance`] < amount) {
+        return next(createError(422, `Insufficient ${currency} balance`));
     }
 
-    sender.account_balance -= amount;
-    recipient.account_balance += amount;
+    sender[`${currency}_balance`] -= amount;
+    recipient[`${currency}_balance`] += amount;
 
     users[sender_index] = sender;
     users[recipient_index] = recipient;
@@ -79,6 +101,30 @@ router.post('/send', (req,res,next)=>{
     return res.status(200).json(newTransaction);
 })
 
+router.post('/sell', (req,res,next) => {
+
+    const { username, amount, from, to } = req.body; // dollar, naira
+    
+    const user = users.find(x=>x.username==username);
+
+    if(user[`${from}_balance`] < amount) {
+        return next(createError(422, `Insufficient ${from} balance`));
+    }
+
+    let converted_amount;
+    if(from == 'dollar') {
+        converted_amount = amount * getCurrencyAmount(from) * getCurrencyAmount(to);
+    } else {
+        converted_amount = (amount * getCurrencyAmount(from)) / getCurrencyAmount(to);
+    }
+
+    
+    user[`${from}_balance`] = user[`${from}_balance`] - amount; 
+    user[`${to}_balance`] = user[`${to}_balance`] + converted_amount; 
+
+    return res.status(200).json(user);
+})
+
 router.get('/balance/:username', (req,res,next)=>{
     const {username} = req.params;
 
@@ -93,21 +139,22 @@ router.get('/balance/:username', (req,res,next)=>{
 })
 
 router.post('/transfer', (req,res,next) => {
-    const {username, amount, bankcode, to} = req.body;
+    const {username, amount, bankcode, to, currency} = req.body;
     
     const sender = users.find((user)=>user.username == username);
     const sender_index = users.findIndex((user)=>user.username == username);
 
 
      // check if sender has sufficient account balance
-     if(sender.account_balance < amount) {
+     if(sender[`${currency}_balance`] < amount) {
         return next(createError(422, 'Insufficient account balance'));
     }
 
-    sender.account_balance -= amount;
+    sender[`${currency}_balance`] -= amount;
     users[sender_index] = sender;
 
     // using an api the amount is then sent OUTSIDE THE APP
+
 
     const newTransaction = {
         id: transactions.length + 1,
@@ -126,5 +173,7 @@ router.post('/transfer', (req,res,next) => {
 
     return res.status(200).json(newTransaction);
 })
+
+
 
 module.exports = router;
